@@ -26,14 +26,13 @@ echo "List endpoints and services"
 echo "----------------------------------"
 
 # Displays services list with port mapping
-docker-compose ps
+docker compose ps
 dots=""
 maxRetryCount=50
 
 # Determine if ELK is setup
 elk_setup=true
-if [ -z `docker-compose -f docker-compose_elk.yml ps -q kibana` ] || [ -z `docker ps -q --no-trunc | grep $(docker-compose -f docker-compose_elk.yml ps -q kibana)` ] ||
-    [ -z `docker-compose -f docker-compose_elk_poa.yml ps -q kibana` ] || [ -z `docker ps -q --no-trunc | grep $(docker-compose -f docker-compose_elk_poa.yml ps -q kibana)` ]; then
+if [ -z `docker compose -f docker-compose_elk_poa.yml ps -q kibana 2>/dev/null` ] || [ -z `docker ps -q --no-trunc | grep $(docker compose -f docker-compose_elk_poa.yml ps -q kibana 2>/dev/null)` ]; then
   elk_setup=false
 fi
 
@@ -48,14 +47,7 @@ if [ $elk_setup == true ]; then
     echo "Setting up the besu index pattern in kibana"
     curl -X POST "http://${HOST}:5601/api/saved_objects/index-pattern/besu" -H 'kbn-xsrf: true' -H 'Content-Type: application/json' -d '{"attributes": {"title": "besu-*","timeFieldName": "@timestamp"}}'
 
-    if [ -z `docker-compose -f docker-compose_privacy.yml ps -q orion3` ] || [ -z `docker ps -q --no-trunc | grep $(docker-compose -f docker-compose_privacy.yml ps -q orion3)` ]; then
-      echo "Orion not running, skipping the orion index pattern in kibana."
-    elif [ -z `docker-compose -f docker-compose_privacy_poa.yml ps -q orion3` ] || [ -z `docker ps -q --no-trunc | grep $(docker-compose -f docker-compose_privacy_poa.yml ps -q orion3)` ]; then
-      echo "Orion not running, skipping the orion index pattern in kibana."
-    else
-      echo "\nSetting up the orion index pattern in kibana"
-      curl -X POST "http://${HOST}:5601/api/saved_objects/index-pattern/orion" -H 'kbn-xsrf: true' -H 'Content-Type: application/json' -d '{"attributes": {"title": "orion-*","timeFieldName": "@timestamp"}}'
-    fi
+    # Orion/Privacy not used in this setup
 fi
 
 echo "****************************************************************"

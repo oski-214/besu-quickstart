@@ -23,4 +23,4 @@ echo "*************************************${normal}"
 echo "Resuming network..."
 echo "----------------------------------"
 
-docker-compose ${composeFile} start
+docker compose ${composeFile} start

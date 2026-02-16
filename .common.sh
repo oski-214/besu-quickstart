@@ -16,9 +16,9 @@ hash docker 2>/dev/null || {
   exit 1
 }
 
-hash docker-compose 2>/dev/null || {
-  echo >&2 "This script requires Docker compose but it's not installed."
-  echo >&2 "Refer to documentation to fulfill requirements."
+docker compose version &>/dev/null || {
+  echo >&2 "This script requires Docker Compose V2 plugin but it's not installed."
+  echo >&2 "Install it with: sudo apt-get install docker-compose-plugin"
   exit 1
 }
 

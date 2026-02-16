@@ -18,7 +18,7 @@ module.exports = {
     },
     sampleNetworkWallet: {
       provider: () => new PrivateKeyProvider(privateKey, "http://localhost:8545"),
-      network_id: "*"
+      network_id: 1337
     }
   }
 };

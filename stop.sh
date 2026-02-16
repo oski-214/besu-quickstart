@@ -22,7 +22,7 @@ echo "*************************************${normal}"
 echo "Stopping network"
 echo "----------------------------------"
 
-docker-compose ${composeFile} stop
+docker compose ${composeFile} stop
 if [[ ! -z `docker ps -a | grep besu-sample-network_pet_shop` ]]; then
   docker stop besu-sample-network_pet_shop
 fi

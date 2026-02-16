@@ -1,0 +1,71 @@
+# NodePort services to expose Besu pods to DApp infrastructure (Docker Compose)
+# besu-0: RPC (30545), WS (30800), Metrics (30950)
+# besu-1/2/3: Metrics only (30951/30952/30953)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-rpc-external
+  namespace: tfg
+spec:
+  type: NodePort
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-0
+  ports:
+    - name: rpc
+      port: 8545
+      targetPort: 8545
+      nodePort: 30545
+    - name: ws
+      port: 8546
+      targetPort: 8546
+      nodePort: 30800
+    - name: metrics
+      port: 9545
+      targetPort: 9545
+      nodePort: 30950
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-1-metrics-external
+  namespace: tfg
+spec:
+  type: NodePort
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-1
+  ports:
+    - name: metrics
+      port: 9545
+      targetPort: 9545
+      nodePort: 30951
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-2-metrics-external
+  namespace: tfg
+spec:
+  type: NodePort
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-2
+  ports:
+    - name: metrics
+      port: 9545
+      targetPort: 9545
+      nodePort: 30952
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-3-metrics-external
+  namespace: tfg
+spec:
+  type: NodePort
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-3
+  ports:
+    - name: metrics
+      port: 9545
+      targetPort: 9545
+      nodePort: 30953

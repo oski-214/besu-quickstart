@@ -1,0 +1,220 @@
+services:
+
+  node1:
+
+    image: hyperledger/besu:25.9.0-amd64
+
+    container_name: cont01
+
+    environment:
+
+      - node.name=n01
+
+    volumes:
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/NODE1/data:/opt/besu/data
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/config:/opt/besu/config
+
+    ports:
+
+      - "30303:30303"
+
+      - "8545:8545"
+
+    command:
+
+      - --data-path=/opt/besu/data
+
+      - --rpc-http-api=ETH,NET,IBFT,ADMIN
+
+      - --host-allowlist="*"
+
+      - --rpc-http-cors-origins="all"
+
+      - --rpc-http-enabled
+
+      - --genesis-file=/opt/besu/config/genesis.json
+
+      - --profile=ENTERPRISE
+
+      - --version-compatibility-protection=false
+
+      - --rpc-http-host=0.0.0.0
+      - --p2p-host=0.0.0.0
+      - --nat-method=DOCKER
+      - --p2p-port=30303
+
+
+  node2:
+
+    image: hyperledger/besu:25.9.0-amd64
+
+    container_name: cont02
+
+    environment:
+
+      - node.name=n02
+
+    depends_on:
+
+      - node1
+
+    volumes:
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/NODE2/data:/opt/besu/data
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/config:/opt/besu/config
+
+    ports:
+
+      - "30304:30304"
+
+      - "8546:8546"
+
+    command:
+
+      - --data-path=/opt/besu/data
+
+      - --rpc-http-api=ETH,NET,IBFT,ADMIN
+
+      - --host-allowlist="*"
+
+      - --rpc-http-cors-origins="all"
+
+      - --rpc-http-enabled
+
+      - --genesis-file=/opt/besu/config/genesis.json
+
+      - --profile=ENTERPRISE
+
+      - --p2p-port=30304
+      - --p2p-host=0.0.0.0
+      - --nat-method=DOCKER
+
+      - --rpc-http-port=8546
+
+      - --rpc-http-host=0.0.0.0
+
+      - --bootnodes=enode://9549d322e4ad42c19521585d4a24cbd66d2ac72e7b6bb44fc25c99563301ef2c036786a9ed89d188b3a83348897cb82abf57e6ace9bc1eeb7097461b735d9e8f@172.21.0.2:30303
+
+      - --version-compatibility-protection=false
+
+
+  node3:
+
+    image: hyperledger/besu:25.9.0-amd64
+
+    container_name: cont03
+
+    environment:
+
+      - node.name=n03
+
+    depends_on:
+
+      - node1
+
+    volumes:
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/NODE3/data:/opt/besu/data
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/config:/opt/besu/config
+
+    ports:
+
+      - "30305:30305"
+
+      - "8547:8547"
+
+    command:
+
+      - --data-path=/opt/besu/data
+
+      - --rpc-http-api=ETH,NET,IBFT,ADMIN
+
+      - --host-allowlist="*"
+
+      - --rpc-http-cors-origins="all"
+
+      - --rpc-http-enabled
+
+      - --genesis-file=/opt/besu/config/genesis.json
+
+      - --profile=ENTERPRISE
+
+      - --p2p-port=30305
+      - --p2p-host=0.0.0.0
+      - --nat-method=DOCKER
+      - --rpc-http-port=8547
+
+      - --rpc-http-host=0.0.0.0
+
+      - --bootnodes=enode://9549d322e4ad42c19521585d4a24cbd66d2ac72e7b6bb44fc25c99563301ef2c036786a9ed89d188b3a83348897cb82abf57e6ace9bc1eeb7097461b735d9e8f@172.21.0.2:30303
+
+      - --version-compatibility-protection=false
+
+
+
+  node4:
+
+    image: hyperledger/besu:25.9.0-amd64
+
+    container_name: cont04
+
+    environment:
+
+      - node.name=n04
+
+    depends_on:
+
+      - node1
+
+    volumes:
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/NODE4/data:/opt/besu/data
+
+      - /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/config:/opt/besu/config
+
+    ports:
+
+      - "30306:30306"
+
+      - "8548:8548"
+
+    command:
+
+      - --data-path=/opt/besu/data
+
+      - --rpc-http-api=ETH,NET,IBFT,ADMIN
+
+      - --host-allowlist="*"
+
+      - --rpc-http-cors-origins="all"
+
+      - --rpc-http-enabled
+
+      - --genesis-file=/opt/besu/config/genesis.json
+
+      - --profile=ENTERPRISE
+
+      - --p2p-port=30306
+      - --p2p-host=0.0.0.0
+      - --nat-method=DOCKER
+
+      - --rpc-http-port=8548
+
+      - --rpc-http-host=0.0.0.0
+
+      - --bootnodes=enode://9549d322e4ad42c19521585d4a24cbd66d2ac72e7b6bb44fc25c99563301ef2c036786a9ed89d188b3a83348897cb82abf57e6ace9bc1eeb7097461b735d9e8f@172.21.0.2:30303
+
+      - --version-compatibility-protection=false
+
+
+
+
+networks:
+
+  default:
+
+    name: besu-net 

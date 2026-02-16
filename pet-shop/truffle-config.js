@@ -17,7 +17,7 @@ module.exports = {
       port: 8545
     },
     sampleNetworkWallet: {
-      provider: () => new PrivateKeyProvider(privateKey, "http://localhost:8545"),
+      provider: () => new PrivateKeyProvider(privateKey, "http://localhost:30545"),
       network_id: 1337
     }
   }

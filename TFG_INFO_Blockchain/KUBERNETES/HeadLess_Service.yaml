@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-p2p
+  namespace: tfg
+spec:
+  clusterIP: None
+  selector:
+    app: besu
+  ports:
+  - name: p2p-tcp
+    port: 30303
+    targetPort: 30303
+    protocol: TCP
+  - name: p2p-udp
+    port: 30303
+    targetPort: 30303
+    protocol: UDP
+
+

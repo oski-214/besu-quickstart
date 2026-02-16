@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: besu
+  namespace: tfg
+spec:
+  serviceName: besu-p2p
+  replicas: 4
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      app: besu
+  template:
+    metadata:
+      labels:
+        app: besu
+    spec:
+      containers:
+        - name: besu
+          image: hyperledger/besu:25.9.0-amd64
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          ports:
+            - containerPort: 30303
+              name: p2p-tcp
+              protocol: TCP
+            - containerPort: 30303
+              name: p2p-udp
+              protocol: UDP
+            - containerPort: 8545
+              name: http
+              protocol: TCP
+            - containerPort: 8546
+              name: ws
+              protocol: TCP
+            - containerPort: 9545
+              name: metrics
+              protocol: TCP
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: BOOTNODE_ENODE
+              value: "enode://9549d322e4ad42c19521585d4a24cbd66d2ac72e7b6bb44fc25c99563301ef2c036786a9ed89d188b3a83348897cb82abf57e6ace9bc1eeb7097461b735d9e8f@besu-0.besu-p2p.tfg.svc.cluster.local:30303"
+          volumeMounts:
+            - name: data
+              mountPath: /opt/besu/data
+            - name: config
+              mountPath: /opt/besu/config
+              readOnly: true
+            - name: node-key-0
+              mountPath: /etc/besu/node-key-0
+              readOnly: true
+            - name: node-key-1
+              mountPath: /etc/besu/node-key-1
+              readOnly: true
+            - name: node-key-2
+              mountPath: /etc/besu/node-key-2
+              readOnly: true
+            - name: node-key-3
+              mountPath: /etc/besu/node-key-3
+              readOnly: true
+
+          args:
+            - |
+              # Select key based on hostname
+              mkdir -p /opt/besu/data
+              if [ "$(hostname)" = "besu-0" ]; then
+                cp /etc/besu/node-key-0/key /opt/besu/data/key
+              elif [ "$(hostname)" = "besu-1" ]; then
+                cp /etc/besu/node-key-1/key /opt/besu/data/key
+              elif [ "$(hostname)" = "besu-2" ]; then
+                cp /etc/besu/node-key-2/key /opt/besu/data/key
+              else
+                cp /etc/besu/node-key-3/key /opt/besu/data/key
+              fi
+              chmod 600 /opt/besu/data/key
+              
+              if [ "$(hostname)" = "besu-0" ]; then
+                echo "Starting bootnode (besu-0)"
+                
+
+                exec besu \
+                  --data-path=/opt/besu/data \
+                  --genesis-file=/opt/besu/config/genesis.json \
+                  --rpc-http-enabled \
+                  --rpc-http-cors-origins=all \
+                  --rpc-http-api=WEB3,ETH,NET,IBFT,ADMIN \
+                  --rpc-http-host=0.0.0.0 \
+                  --rpc-ws-enabled \
+                  --rpc-ws-host=0.0.0.0 \
+                  --rpc-ws-api=WEB3,ETH,NET,IBFT,ADMIN \
+                  --metrics-enabled \
+                  --metrics-host=0.0.0.0 \
+                  --metrics-port=9545 \
+                  --host-allowlist=* \
+                  --profile=ENTERPRISE \
+                  --p2p-host=$POD_IP \
+                  --p2p-interface=0.0.0.0 \
+                  --p2p-port=30303 \
+                  --Xdns-enabled=true \
+                  --nat-method=NONE \
+                  --version-compatibility-protection=false
+
+              else
+                echo "Starting non-bootnode $(hostname)"
+
+                exec besu \
+                  --data-path=/opt/besu/data \
+                  --genesis-file=/opt/besu/config/genesis.json \
+                  --rpc-http-enabled \
+                  --rpc-http-cors-origins=all \
+                  --rpc-http-api=WEB3,ETH,NET,IBFT,ADMIN \
+                  --rpc-http-host=0.0.0.0 \
+                  --rpc-ws-enabled \
+                  --rpc-ws-host=0.0.0.0 \
+                  --rpc-ws-api=WEB3,ETH,NET,IBFT,ADMIN \
+                  --metrics-enabled \
+                  --metrics-host=0.0.0.0 \
+                  --metrics-port=9545 \
+                  --host-allowlist=* \
+                  --profile=ENTERPRISE \
+                  --p2p-host=$POD_IP \
+                  --p2p-interface=0.0.0.0 \
+                  --p2p-port=30303 \
+                  --Xdns-enabled=true \
+                  --nat-method=NONE \
+                  --version-compatibility-protection=false \
+                  --bootnodes=$BOOTNODE_ENODE
+              fi
+
+      volumes:
+        - name: config
+          configMap:
+            name: besu-config
+            items:
+              - key: genesis.json
+                path: genesis.json
+        - name: node-key-0
+          secret:
+            secretName: besu-node-key-0
+        - name: node-key-1
+          secret:
+            secretName: besu-node-key-1
+        - name: node-key-2
+          secret:
+            secretName: besu-node-key-2
+        - name: node-key-3
+          secret:
+            secretName: besu-node-key-3
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

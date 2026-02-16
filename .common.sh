@@ -22,6 +22,12 @@ docker compose version &>/dev/null || {
   exit 1
 }
 
+hash kubectl 2>/dev/null || {
+  echo >&2 "This script requires kubectl but it's not installed."
+  echo >&2 "Install it: https://kubernetes.io/docs/tasks/tools/"
+  exit 1
+}
+
 docker info &>/dev/null
 if [ "$?" -eq "1" ];then
   echo >&2 "This script requires Docker daemon to run. Start Docker and try again."

@@ -1,20 +1,53 @@
-# Instrucciones para ejecutar la red IBFT2 con el quickstart
+# Instrucciones: Red IBFT2 en Kubernetes + DApp (TFG)
+
+## Arquitectura
+
+```
+┌──────────────────────────────────────────────────────┐
+│                    KUBERNETES                         │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
+│  │ besu-0  │ │ besu-1  │ │ besu-2  │ │ besu-3  │   │
+│  │(bootnode)│ │(valid.) │ │(valid.) │ │(valid.) │   │
+│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘   │
+│       │ NodePort 30545 (RPC)  │ NodePort 30950-53   │
+│       │ NodePort 30800 (WS)   │ (metrics)           │
+└───────┼───────────────────────┼─────────────────────┘
+        │                       │
+┌───────┼───────────────────────┼─────────────────────┐
+│       ▼     DOCKER COMPOSE    ▼                      │
+│  ┌──────────┐ ┌────────────┐ ┌─────────┐            │
+│  │ Explorer │ │ Prometheus │ │ Grafana │            │
+│  │ :25000   │ │ :9090      │ │ :3000   │            │
+│  └──────────┘ └────────────┘ └─────────┘            │
+└──────────────────────────────────────────────────────┘
+        │
+   ┌────┴─────┐
+   │ Pet-shop │  (Truffle deploy manual)
+   │ :3001    │
+   └──────────┘
+```
+
+- **Blockchain (4 validadores IBFT2)** → corre en Kubernetes (StatefulSet con replicación)
+- **DApp / Monitorización** → corre en Docker Compose, conectada a K8s vía NodePort
+
+---
 
 ## Requisitos previos
 
-- **Docker** (v20+): https://docs.docker.com/engine/install/
-- **Docker Compose V2** (plugin): los scripts usan `docker compose` (con espacio, no guión).
+- **Docker** (v20+) + **Docker Compose V2** (plugin):
   ```bash
-  # Instalar el plugin Docker Compose V2 en Ubuntu/Debian:
-  sudo apt-get update
-  sudo apt-get install docker-compose-plugin
-  
-  # Verificar:
-  docker compose version
-  # Debe mostrar: Docker Compose version v2.x.x
+  sudo apt-get update && sudo apt-get install docker-compose-plugin
+  docker compose version   # debe mostrar v2.x
   ```
-  > **Nota:** Si tienes instalado `docker-compose` 1.x (el antiguo basado en Python), NO funcionará con Python 3.12+. Usa el plugin V2 en su lugar.
-- [Node.js](https://nodejs.org/en/download/) y [Truffle](https://www.trufflesuite.com/truffle) (solo para la DApp)
+- **kubectl** configurado y conectado a tu cluster K8s:
+  ```bash
+  kubectl version --client
+  kubectl cluster-info    # debe poder conectar
+  ```
+- **Node.js** + **Truffle** (solo para desplegar la DApp pet-shop):
+  ```bash
+  npm install -g truffle
+  ```
 - Linux (probado en Ubuntu)
 
 ---
@@ -23,137 +56,122 @@
 
 ```bash
 cd ~
-git clone <URL_DE_TU_FORK_O_REPO>
+git clone https://github.com/oski-214/besu-quickstart.git
 cd besu-quickstart
 ```
 
 ---
 
-## 2. Copiar tus keys de nodo
+## 2. Configurar las keys de nodo
 
-Cada nodo necesita su fichero `key` (clave privada). Tus keys están en:
-```
-/home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys/
-```
-
-Cópialas así:
+Edita `KEYS_PATH` en el fichero `.env` para que apunte a tu directorio de keys:
 
 ```bash
-# Node-1 → bootnode (es el primer validador y nodo de arranque)
-cp /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys/Node-1-KEY/key \
-   /home/oscar-214/Documents/DAPP/besu-quickstart/config/besu/networkFiles/bootnode/keys/key
-
-# Node-2 → validator2
-cp /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys/Node-2-KEY/key \
-   /home/oscar-214/Documents/DAPP/besu-quickstart/config/besu/networkFiles/validator2/keys/key
-
-# Node-3 → validator3
-cp /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys/Node-3-KEY/key \
-   /home/oscar-214/Documents/DAPP/besu-quickstart/config/besu/networkFiles/validator3/keys/key
-
-# Node-4 → validator4
-cp /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys/Node-4-KEY/key \
-   /home/oscar-214/Documents/DAPP/besu-quickstart/config/besu/networkFiles/validator4/keys/key
-
-# rpcnode → puedes usar Node-1 (no valida, solo expone RPC)
-cp /home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys/Node-1-KEY/key \
-   /home/oscar-214/Documents/DAPP/besu-quickstart/config/besu/networkFiles/rpcnode/keys/key
+# En .env, actualiza esta línea:
+KEYS_PATH=/home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys
 ```
 
-> **Nota:** Los ficheros `key.pub` no hace falta copiarlos. El bootnode genera su pubkey automáticamente al arrancar.
+Luego crea los secretos de Kubernetes:
 
-### Mapeo de nodos
+```bash
+chmod +x create-secrets.sh
+./create-secrets.sh
+```
 
-| Tu nodo (Kubernetes) | Carpeta en el quickstart | Rol |
-|---|---|---|
-| Node-1 (besu-0) | `networkFiles/bootnode/keys/` | Validador 1 + Bootnode |
-| Node-2 (besu-1) | `networkFiles/validator2/keys/` | Validador 2 |
-| Node-3 (besu-2) | `networkFiles/validator3/keys/` | Validador 3 |
-| Node-4 (besu-3) | `networkFiles/validator4/keys/` | Validador 4 |
-| — | `networkFiles/rpcnode/keys/` | Nodo RPC (no valida) |
+Esto creará los secretos `besu-node-key-0` a `besu-node-key-3` en el namespace `tfg`.
 
 ---
 
-## 3. Limpieza inicial (solo la primera vez)
+## 3. Arrancar todo
 
-Eliminar archivos innecesarios (ethash, clique, privacy, permissioning, orion...):
-
-```bash
-chmod +x cleanup.sh
-./cleanup.sh
-```
-
----
-
-## 4. Arrancar la red
+Un solo comando despliega la blockchain en K8s y la DApp infrastructure en Docker:
 
 ```bash
-# Red IBFT2 + Block Explorer + Prometheus + Grafana
+chmod +x run.sh stop.sh resume.sh remove.sh list.sh
 ./run.sh
-
-# Con ELK (Elasticsearch/Logstash/Kibana) para logs centralizados
-./run.sh -e
 ```
+
+El script hace automáticamente:
+1. `kubectl apply` de namespace, ConfigMap, HeadLess Service, StatefulSet, RPC Services, NodePort Services
+2. Espera a que los 4 pods besu estén ready
+3. `docker compose up` del explorer, Prometheus y Grafana
 
 ---
 
-## 5. Desplegar la DApp pet-shop (puerto 3001)
+## 4. Desplegar la DApp pet-shop
 
-La DApp se despliega automáticamente como servicio Docker en `docker-compose_poa.yml`.
-Si necesitas redesplegar el smart contract manualmente:
+Una vez la red esté corriendo (puedes verificar con `./list.sh`):
 
 ```bash
-# Instalar Truffle si no lo tienes
-npm install -g truffle
-
 cd pet-shop
+npm install
 truffle migrate --network sampleNetworkWallet
+npm run dev
 cd ..
 ```
 
+La DApp estará en `http://localhost:3001`.
+
 ---
 
-## 6. Configurar MetaMask
+## 5. Configurar MetaMask
 
-1. Abrir MetaMask → **Añadir red manualmente**:
-   - **RPC URL:** `http://localhost:8550`
+1. **Añadir red manualmente:**
+   - **RPC URL:** `http://localhost:30545`
    - **Chain ID:** `1337`
    - **Símbolo:** `ETH`
 
-2. Importar cuenta con fondos:
-   - `My Accounts` → `Import Account`
+2. **Importar cuenta con fondos:**
    - Private key: `c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3`
-   - (Corresponde a la cuenta `0x627306090abaB3A6e1400e9345bC60c78a8BEf57` del genesis)
+   - (Cuenta `0x627306090abaB3A6e1400e9345bC60c78a8BEf57` — 90000 ETH en el genesis)
 
-3. Abrir `http://localhost:3001` → Adoptar un pet → Confirmar transacción en MetaMask
-
----
-
-## 7. Puertos y servicios
-
-| Puerto | Servicio | URL |
-|--------|----------|-----|
-| 8545 | RPC JSON (MetaMask, Truffle) | `http://localhost:8550` |
-| 3001 | DApp pet-shop | `http://localhost:3001` |
-| 25000 | Block Explorer | `http://localhost:25000` |
-| 3000 | Grafana (dashboards) | `http://localhost:3000` |
-| 9090 | Prometheus (métricas) | `http://localhost:9090` |
-| 5601 | Kibana (solo con `-e`) | `http://localhost:5601` |
+3. Abrir `http://localhost:3001` → Adoptar un pet → Confirmar en MetaMask
 
 ---
 
-## 8. Comandos útiles
+## 6. Puertos y servicios
+
+| Puerto | Servicio | Tipo | URL |
+|--------|----------|------|-----|
+| 30545 | RPC JSON-HTTP (besu-0) | K8s NodePort | `http://localhost:30545` |
+| 30800 | RPC WebSocket (besu-0) | K8s NodePort | `ws://localhost:30800` |
+| 25000 | Block Explorer | Docker | `http://localhost:25000` |
+| 3000 | Grafana (dashboards) | Docker | `http://localhost:3000` |
+| 9090 | Prometheus (métricas) | Docker | `http://localhost:9090` |
+| 3001 | DApp pet-shop | Local/npm | `http://localhost:3001` |
+| 30950-30953 | Metrics (besu-0 a besu-3) | K8s NodePort | (interno para Prometheus) |
+
+---
+
+## 7. Comandos de gestión
 
 ```bash
-./stop.sh      # Parar la red (sin borrar datos)
-./resume.sh    # Reanudar la red parada
-./remove.sh    # Eliminar todo (containers + volúmenes + imágenes)
-./list.sh      # Listar servicios y endpoints activos
+./run.sh       # Desplegar todo (K8s + Docker Compose)
+./stop.sh      # Parar todo (scale K8s a 0 + stop Docker Compose)
+./resume.sh    # Reanudar (scale K8s a 4 + start Docker Compose)
+./remove.sh    # Eliminar todo (delete K8s resources + remove Docker)
+./list.sh      # Ver estado de pods y endpoints
+```
+
+### Comandos útiles de kubectl
+
+```bash
+# Ver pods
+kubectl get pods -n tfg -o wide
+
+# Ver logs de un nodo
+kubectl logs -n tfg besu-0 --tail=50 -f
+
+# Ver servicios
+kubectl get svc -n tfg
+
+# Describir un pod
+kubectl describe pod besu-0 -n tfg
 ```
 
 ---
 
-## 9. Configuración de la blockchain
+## 8. Configuración de la blockchain
 
 - **Consenso:** IBFT2
 - **Chain ID:** 1337
@@ -161,8 +179,8 @@ cd ..
 - **Epoch length:** 30000
 - **Request timeout:** 4 segundos
 - **Gas limit:** 0x47b760
-- **Genesis:** `config/besu/ibft2Genesis.json`
-- **Config nodos:** `config/besu/config.toml`
+- **Nodos:** 4 validadores (StatefulSet con réplicas=4)
+- **Resiliencia:** Si un pod se cae, K8s lo recrea automáticamente
 
 ### Cuentas pre-funded en el genesis
 
@@ -174,26 +192,25 @@ cd ..
 
 ---
 
-## 10. Estructura de archivos clave
+## 9. Estructura del proyecto
 
 ```
 besu-quickstart/
-├── run.sh                          # Arrancar red (solo -e como opción)
-├── stop.sh / resume.sh / remove.sh # Gestión del ciclo de vida
-├── docker-compose_poa.yml          # Red IBFT2 base
-├── docker-compose_elk_poa.yml      # Red IBFT2 + ELK
-├── .env                            # Variables de entorno (BESU_VERSION, etc.)
-├── config/besu/
-│   ├── ibft2Genesis.json           # ← TU genesis (chainId 1337, tus validadores)
-│   ├── config.toml                 # Configuración RPC/WS/GraphQL/Metrics
-│   └── networkFiles/
-│       ├── bootnode/keys/key       # ← TU Node-1 key
-│       ├── validator2/keys/key     # ← TU Node-2 key
-│       ├── validator3/keys/key     # ← TU Node-3 key
-│       ├── validator4/keys/key     # ← TU Node-4 key
-│       └── rpcnode/keys/key        # ← Key del nodo RPC
-├── pet-shop/                       # DApp + Smart contract Adoption.sol
-├── monitoring/                     # Prometheus + Grafana config
-├── elasticsearch/ filebeat/ logstash/  # ELK stack config
-└── block-explorer-light/           # Block Explorer
+├── run.sh / stop.sh / resume.sh / remove.sh / list.sh   # Gestión del ciclo de vida
+├── create-secrets.sh                                      # Crear secretos K8s
+├── docker-compose_dapp.yml                                # Explorer + Prometheus + Grafana
+├── .env                                                   # Variables (KEYS_PATH, K8S_NAMESPACE...)
+├── TFG_INFO_Blockchain/KUBERNETES/
+│   ├── namespace.yaml                                     # Namespace tfg
+│   ├── ConfigMap.yaml                                     # Genesis block (chainId 1337)
+│   ├── HeadLess_Service.yaml                              # P2P discovery entre pods
+│   ├── StatefulSet.yaml                                   # 4 validadores Besu (con métricas)
+│   ├── RPC_Service.yaml                                   # ClusterIP RPC por pod
+│   ├── ExternalAccess_Service.yaml                        # NodePort para RPC + métricas
+│   └── Secretos.txt                                       # Referencia de comandos manuales
+├── block-explorer-light/                                  # Block Explorer (nginx → K8s NodePort)
+├── monitoring/
+│   ├── prometheus/prometheus.yml                          # Targets: K8s NodePorts 30950-30953
+│   └── grafana/provisioning/                              # Dashboards Besu
+└── pet-shop/                                              # DApp + Smart contract Adoption.sol
 ```

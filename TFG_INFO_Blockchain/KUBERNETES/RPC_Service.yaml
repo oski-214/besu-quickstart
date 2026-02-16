@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-0-rpc
+  namespace: tfg
+spec:
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-0
+  ports:
+  - name: http
+    port: 8545
+    targetPort: 8545
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-1-rpc
+  namespace: tfg
+spec:
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-1
+  ports:
+  - name: http
+    port: 8546
+    targetPort: 8545
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-2-rpc
+  namespace: tfg
+spec:
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-2
+  ports:
+  - name: http
+    port: 8547
+    targetPort: 8545
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-3-rpc
+  namespace: tfg
+spec:
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-3
+  ports:
+  - name: http
+    port: 8548
+    targetPort: 8545
+    protocol: TCP
+

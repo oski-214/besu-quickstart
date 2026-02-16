@@ -1,0 +1,42 @@
+---
+version: '3.4'
+
+# DApp infrastructure only - blockchain runs in Kubernetes
+# Services connect to K8s Besu nodes via NodePort (host-gateway)
+
+services:
+
+  explorer:
+    build: block-explorer-light/.
+    image: sample-network/block-explorer-light:${BESU_VERSION}
+    extra_hosts:
+      - "besu-rpc:host-gateway"
+    ports:
+      - 25000:80/tcp
+
+  prometheus:
+    image: "prom/prometheus"
+    extra_hosts:
+      - "besu-rpc:host-gateway"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090/tcp
+
+  grafana:
+    image: "grafana/grafana"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - ./monitoring/grafana/provisioning/:/etc/grafana/provisioning/
+      - grafana:/var/lib/grafana
+    ports:
+      - 3000:3000/tcp
+
+volumes:
+  prometheus:
+
+  grafana:

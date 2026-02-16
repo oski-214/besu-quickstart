@@ -1,15 +1,6 @@
 #!/bin/bash -u
 
-# Copyright 2018 ConsenSys AG.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
-# an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
+# Removes everything: K8s blockchain resources + Docker Compose DApp infrastructure.
 
 NO_LOCK_REQUIRED=false
 
@@ -23,27 +14,34 @@ removeDockerImage(){
 }
 
 echo "${bold}*************************************"
-echo "Sample Network for Besu at ${version}"
+echo "Removing Besu IBFT2 Network"
 echo "*************************************${normal}"
-echo "Stop and remove network..."
+
+# ---- 1. Remove Docker Compose DApp ----
+echo "Removing DApp infrastructure (Docker Compose)..."
 docker compose ${composeFile} down -v
 docker compose ${composeFile} rm -sfv
 
-removeDockerImage sample-network/besu:${version}
-removeDockerImage sample-network/block-explorer-light:${version}
-removeDockerImage hyperledger/besu:${BESU_VERSION}
+removeDockerImage sample-network/block-explorer-light:${BESU_VERSION}
 
-# elk
-removeDockerImage besu-sample-network_filebeat
-removeDockerImage besu-sample-network_logstash
-removeDockerImage besu-sample-network_elasticsearch
+# ---- 2. Remove Kubernetes blockchain ----
+echo ""
+echo "Removing Kubernetes blockchain resources (namespace: ${K8S_NAMESPACE})..."
+kubectl delete -f ${K8S_DIR}/ExternalAccess_Service.yaml --ignore-not-found
+kubectl delete -f ${K8S_DIR}/RPC_Service.yaml --ignore-not-found
+kubectl delete -f ${K8S_DIR}/StatefulSet.yaml --ignore-not-found
+kubectl delete -f ${K8S_DIR}/HeadLess_Service.yaml --ignore-not-found
+kubectl delete -f ${K8S_DIR}/ConfigMap.yaml --ignore-not-found
 
-# pet shop dapp
-if [[ ! -z `docker ps -a | grep besu-sample-network_pet_shop` ]]; then
-  docker stop besu-sample-network_pet_shop
-  docker rm besu-sample-network_pet_shop
-  removeDockerImage besu-sample-network_pet_shop
-fi
+# Delete PVCs (blockchain data)
+echo "Deleting PersistentVolumeClaims..."
+kubectl delete pvc -n ${K8S_NAMESPACE} -l app=besu --ignore-not-found
 
-rm ${LOCK_FILE}
+echo ""
+echo "NOTE: Secrets (node keys) and namespace '${K8S_NAMESPACE}' are NOT deleted."
+echo "To delete everything including secrets:"
+echo "  kubectl delete namespace ${K8S_NAMESPACE}"
+
+rm -f ${LOCK_FILE}
 echo "Lock file ${LOCK_FILE} removed"
+echo "Done."

@@ -18,5 +18,19 @@ kubectl rollout status statefulset/besu -n ${K8S_NAMESPACE} --timeout=180s
 echo "Resuming DApp infrastructure (Docker Compose)..."
 docker compose ${composeFile} start
 
+# Restart port-forward
+echo ""
+echo "Starting kubectl port-forward (background)..."
+pkill -f "kubectl port-forward.*besu" 2>/dev/null || true
+sleep 1
+kubectl port-forward svc/besu-rpc-external 30545:8545 30800:8546 30950:9545 -n ${K8S_NAMESPACE} &>/dev/null &
+echo $! > .port-forward.pid
+for i in 1 2 3; do
+  kubectl port-forward svc/besu-${i}-metrics-external 3095${i}:9545 -n ${K8S_NAMESPACE} &>/dev/null &
+  echo $! >> .port-forward.pid
+done
+sleep 2
+echo "Port-forwards active."
+
 echo ""
 ./list.sh

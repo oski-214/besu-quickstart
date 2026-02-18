@@ -87,6 +87,30 @@ echo "${SAMPLE_VERSION}" >> ${LOCK_FILE}
 docker compose ${composeFile} build --pull
 docker compose ${composeFile} up --detach
 
-# ---- 3. List endpoints ----
+# ---- 3. Start port-forward (minikube docker driver needs this) ----
+echo ""
+echo "==> Step 3: Starting kubectl port-forward (background)..."
+echo "--------------------"
+
+# Kill any existing port-forward
+pkill -f "kubectl port-forward.*besu-rpc-external" 2>/dev/null || true
+sleep 1
+
+# Forward RPC (30545->8545), WS (30800->8546), metrics besu-0 (30950->9545)
+kubectl port-forward svc/besu-rpc-external 30545:8545 30800:8546 30950:9545 -n ${K8S_NAMESPACE} &>/dev/null &
+PF_PID=$!
+echo "Port-forward PID: $PF_PID"
+echo $PF_PID > .port-forward.pid
+sleep 2
+
+# Forward metrics per-node (30951-30953)
+for i in 1 2 3; do
+  kubectl port-forward svc/besu-${i}-metrics-external 3095${i}:9545 -n ${K8S_NAMESPACE} &>/dev/null &
+  echo $! >> .port-forward.pid
+done
+
+echo "Port-forwards active: localhost:30545 (RPC), localhost:30800 (WS), localhost:30950-30953 (metrics)"
+
+# ---- 4. List endpoints ----
 echo ""
 ./list.sh

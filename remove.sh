@@ -38,6 +38,15 @@ echo "Deleting PersistentVolumeClaims..."
 kubectl delete pvc -n ${K8S_NAMESPACE} -l app=besu --ignore-not-found
 
 echo ""
+# Kill port-forward
+if [ -f .port-forward.pid ]; then
+  while read pid; do
+    kill $pid 2>/dev/null
+  done < .port-forward.pid
+  rm -f .port-forward.pid
+fi
+pkill -f "kubectl port-forward.*besu" 2>/dev/null || true
+
 echo "NOTE: Secrets (node keys) and namespace '${K8S_NAMESPACE}' are NOT deleted."
 echo "To delete everything including secrets:"
 echo "  kubectl delete namespace ${K8S_NAMESPACE}"

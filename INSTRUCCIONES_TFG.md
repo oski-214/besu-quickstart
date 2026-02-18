@@ -9,15 +9,15 @@
 │  │ besu-0  │ │ besu-1  │ │ besu-2  │ │ besu-3  │   │
 │  │(bootnode)│ │(valid.) │ │(valid.) │ │(valid.) │   │
 │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘   │
-│       │ NodePort 30545 (RPC)  │ NodePort 30950-53   │
-│       │ NodePort 30800 (WS)   │ (metrics)           │
+│       │      Services (ClusterIP + NodePort)   │           │
 └───────┼───────────────────────┼─────────────────────┘
-        │                       │
+        │  kubectl port-forward       │
+        │ (30545, 30800, 30950-53)    │
 ┌───────┼───────────────────────┼─────────────────────┐
-│       ▼     DOCKER COMPOSE    ▼                      │
+│       ▼  localhost              ▼                      │
 │  ┌──────────┐ ┌────────────┐ ┌─────────┐            │
-│  │ Explorer │ │ Prometheus │ │ Grafana │            │
-│  │ :25000   │ │ :9090      │ │ :3000   │            │
+│  │ Explorer │ │ Prometheus │ │ Grafana │   DOCKER   │
+│  │ :25000   │ │ :9090      │ │ :3000   │  COMPOSE   │
 │  └──────────┘ └────────────┘ └─────────┘            │
 └──────────────────────────────────────────────────────┘
         │
@@ -28,7 +28,8 @@
 ```
 
 - **Blockchain (4 validadores IBFT2)** → corre en Kubernetes (StatefulSet con replicación)
-- **DApp / Monitorización** → corre en Docker Compose, conectada a K8s vía NodePort
+- **DApp / Monitorización** → corre en Docker Compose, conectada a K8s vía `kubectl port-forward`
+- **Acceso a la blockchain** → siempre en `localhost` (port-forward lo gestiona automáticamente `run.sh`)
 
 ---
 
@@ -102,6 +103,7 @@ El script hace automáticamente:
 1. `kubectl apply` de namespace, ConfigMap, HeadLess Service, StatefulSet, RPC Services, NodePort Services
 2. Espera a que los 4 pods besu estén ready
 3. `docker compose up` del explorer, Prometheus y Grafana
+4. `kubectl port-forward` en background (expone K8s en `localhost:30545`, `localhost:30800`, `localhost:30950-53`)
 
 ---
 
@@ -128,13 +130,8 @@ La DApp estará en `http://localhost:3001`.
 
 ## 5. Configurar MetaMask
 
-> **Nota minikube:** Si usas minikube, reemplaza `localhost` por la IP de minikube:
-> ```bash
-> minikube ip   # ej: 192.168.49.2
-> ```
-
 1. **Añadir red manualmente:**
-   - **RPC URL:** `http://<minikube-ip>:30545` (o `http://localhost:30545` si usas K8s nativo)
+   - **RPC URL:** `http://localhost:30545`
    - **Chain ID:** `1337`
    - **Símbolo:** `ETH`
 

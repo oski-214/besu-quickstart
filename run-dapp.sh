@@ -9,14 +9,16 @@ echo "*************************************"
 echo "DApp Pet-Shop Deployment"
 echo "*************************************"
 
-# Detectar IP de minikube (NodePorts no están en localhost con minikube)
-if command -v minikube &> /dev/null; then
-    BESU_RPC_HOST=$(minikube ip 2>/dev/null)
-    if [ -n "$BESU_RPC_HOST" ]; then
-        echo "Minikube detectado. RPC host: $BESU_RPC_HOST"
-        export BESU_RPC_HOST
-    fi
+# Verificar que port-forward está activo (run.sh lo inicia)
+if ! curl -s http://localhost:30545 -X POST -H 'Content-Type: application/json' \
+     -d '{"jsonrpc":"2.0","method":"net_version","id":1}' --connect-timeout 3 &>/dev/null; then
+  echo "WARNING: No se puede conectar a localhost:30545"
+  echo "Asegúrate de que ./run.sh esté ejecutado (inicia port-forward automáticamente)."
+  echo "O inicia port-forward manualmente:"
+  echo "  kubectl port-forward svc/besu-rpc-external 30545:8545 30800:8546 -n ${K8S_NAMESPACE} &"
+  exit 1
 fi
+echo "Conexión OK: localhost:30545"
 
 # Configurar npm global sin sudo (evita EACCES)
 mkdir -p ~/.npm-global
@@ -32,15 +34,11 @@ fi
 cd pet-shop
 
 echo ""
-echo "Cleaning old dependencies..."
-rm -rf node_modules package-lock.json
-
-echo ""
 echo "Installing pet-shop dependencies..."
 npm install
 
 echo ""
-echo "Compiling and migrating contracts to K8s network (${BESU_RPC_HOST:-localhost}:30545)..."
+echo "Compiling and migrating contracts to K8s network (localhost:30545 via port-forward)..."
 truffle migrate --network sampleNetworkWallet --reset
 
 echo ""

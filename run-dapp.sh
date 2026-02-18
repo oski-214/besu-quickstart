@@ -3,10 +3,10 @@
 # Copyright 2018 ConsenSys AG.
 # Modified for K8s + DApp architecture (TFG)
 
-NO_LOCK_REQUIRED=true
-
 . ./.env
-. ./.common.sh
+
+# Verificaciones básicas (sin lock file — la DApp no gestiona la red)
+hash truffle 2>/dev/null || NEED_TRUFFLE=true
 
 echo "*************************************"
 echo "DApp Pet-Shop Deployment"

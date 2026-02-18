@@ -3,6 +3,8 @@
 # Copyright 2018 ConsenSys AG.
 # Modified for K8s + DApp architecture (TFG)
 
+NO_LOCK_REQUIRED=true
+
 . ./.env
 . ./.common.sh
 

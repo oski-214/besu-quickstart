@@ -1,31 +1,37 @@
 #!/bin/bash -u
 
 # Copyright 2018 ConsenSys AG.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
-# an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
+# Modified for K8s + DApp architecture (TFG)
 
 . ./.env
+. ./.common.sh
 
-# Import the following accounts into metamask
-# 0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3
+echo "*************************************"
+echo "DApp Pet-Shop Deployment"
+echo "*************************************"
 
-# build the dapp
+# Configurar npm global sin sudo (evita EACCES)
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+export PATH=~/.npm-global/bin:$PATH
+
+# Instalar truffle globalmente si no está disponible
+if ! command -v truffle &> /dev/null; then
+    echo "Installing Truffle globally..."
+    npm install -g truffle
+fi
+
 cd pet-shop
+
+echo ""
+echo "Installing pet-shop dependencies..."
 npm install
 
-# compile the contracts
-truffle compile
-truffle migrate --network sampleNetworkWallet
-truffle test --network sampleNetworkWallet
+echo ""
+echo "Compiling and migrating contracts to K8s network (port 30545)..."
+truffle migrate --network sampleNetworkWallet --reset
 
-docker build . -t besu-sample-network_pet_shop
-docker run -p 3001:3001 --name besu-sample-network_pet_shop --detach besu-sample-network_pet_shop
-
+echo ""
+echo "Starting DApp on http://localhost:3001 ..."
+npm run dev
 

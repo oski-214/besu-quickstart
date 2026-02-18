@@ -46,6 +46,13 @@
   ```
 - **Node.js** + **Truffle** (solo para desplegar la DApp pet-shop):
   ```bash
+  # Configurar npm global sin sudo (una sola vez)
+  mkdir -p ~/.npm-global
+  npm config set prefix '~/.npm-global'
+  echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+  source ~/.bashrc
+
+  # Instalar Truffle
   npm install -g truffle
   ```
 - Linux (probado en Ubuntu)
@@ -103,9 +110,14 @@ El script hace automáticamente:
 Una vez la red esté corriendo (puedes verificar con `./list.sh`):
 
 ```bash
+# Opción A: Script automático (instala truffle si falta, compila, despliega y arranca)
+chmod +x run-dapp.sh
+./run-dapp.sh
+
+# Opción B: Manual
 cd pet-shop
 npm install
-truffle migrate --network sampleNetworkWallet
+truffle migrate --network sampleNetworkWallet --reset
 npm run dev
 cd ..
 ```

@@ -128,8 +128,13 @@ La DApp estará en `http://localhost:3001`.
 
 ## 5. Configurar MetaMask
 
+> **Nota minikube:** Si usas minikube, reemplaza `localhost` por la IP de minikube:
+> ```bash
+> minikube ip   # ej: 192.168.49.2
+> ```
+
 1. **Añadir red manualmente:**
-   - **RPC URL:** `http://localhost:30545`
+   - **RPC URL:** `http://<minikube-ip>:30545` (o `http://localhost:30545` si usas K8s nativo)
    - **Chain ID:** `1337`
    - **Símbolo:** `ETH`
 

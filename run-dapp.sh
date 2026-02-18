@@ -5,12 +5,18 @@
 
 . ./.env
 
-# Verificaciones básicas (sin lock file — la DApp no gestiona la red)
-hash truffle 2>/dev/null || NEED_TRUFFLE=true
-
 echo "*************************************"
 echo "DApp Pet-Shop Deployment"
 echo "*************************************"
+
+# Detectar IP de minikube (NodePorts no están en localhost con minikube)
+if command -v minikube &> /dev/null; then
+    BESU_RPC_HOST=$(minikube ip 2>/dev/null)
+    if [ -n "$BESU_RPC_HOST" ]; then
+        echo "Minikube detectado. RPC host: $BESU_RPC_HOST"
+        export BESU_RPC_HOST
+    fi
+fi
 
 # Configurar npm global sin sudo (evita EACCES)
 mkdir -p ~/.npm-global
@@ -26,11 +32,15 @@ fi
 cd pet-shop
 
 echo ""
+echo "Cleaning old dependencies..."
+rm -rf node_modules package-lock.json
+
+echo ""
 echo "Installing pet-shop dependencies..."
 npm install
 
 echo ""
-echo "Compiling and migrating contracts to K8s network (port 30545)..."
+echo "Compiling and migrating contracts to K8s network (${BESU_RPC_HOST:-localhost}:30545)..."
 truffle migrate --network sampleNetworkWallet --reset
 
 echo ""

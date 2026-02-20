@@ -13,7 +13,7 @@ scrape_configs:
       metrics_path: /metrics
       scheme: http
       static_configs:
-        - targets: [ 'besu-rpc:30950' ]
+        - targets: [ 'localhost:30950' ]
           labels:
             node: 'besu-0'
             role: 'bootnode'
@@ -24,7 +24,7 @@ scrape_configs:
       metrics_path: /metrics
       scheme: http
       static_configs:
-        - targets: [ 'besu-rpc:30951' ]
+        - targets: [ 'localhost:30951' ]
           labels:
             node: 'besu-1'
             role: 'validator'
@@ -35,7 +35,7 @@ scrape_configs:
       metrics_path: /metrics
       scheme: http
       static_configs:
-        - targets: [ 'besu-rpc:30952' ]
+        - targets: [ 'localhost:30952' ]
           labels:
             node: 'besu-2'
             role: 'validator'
@@ -46,7 +46,7 @@ scrape_configs:
       metrics_path: /metrics
       scheme: http
       static_configs:
-        - targets: [ 'besu-rpc:30953' ]
+        - targets: [ 'localhost:30953' ]
           labels:
             node: 'besu-3'
             role: 'validator'

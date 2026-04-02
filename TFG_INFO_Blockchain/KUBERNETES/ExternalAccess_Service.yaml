@@ -10,7 +10,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    statefulset.kubernetes.io/pod-name: besu-0
+    app: besu
   ports:
     - name: rpc
       port: 8545
@@ -20,6 +20,17 @@ spec:
       port: 8546
       targetPort: 8546
       nodePort: 30800
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: besu-0-metrics-external
+  namespace: tfg
+spec:
+  type: NodePort
+  selector:
+    statefulset.kubernetes.io/pod-name: besu-0
+  ports:
     - name: metrics
       port: 9545
       targetPort: 9545

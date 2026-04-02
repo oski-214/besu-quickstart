@@ -78,6 +78,11 @@ Edita `KEYS_PATH` en el fichero `.env` para que apunte a tu directorio de keys:
 # En .env, actualiza esta línea:
 KEYS_PATH=/home/oscar-214/Documents/BESU/besu-25.9.0/bin/IBFT-NW/keys
 ```
+PARA EL MINIKUBE START DARLE SUFICIENTE CPU Y MEMORIA RAM. POR EJEMEPLO:
+
+```bash
+minikube start --memory 8192 --cpus 4
+```
 
 Luego crea los secretos de Kubernetes:
 

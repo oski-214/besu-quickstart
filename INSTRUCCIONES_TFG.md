@@ -120,6 +120,9 @@ Una vez la red esté corriendo (puedes verificar con `./list.sh`):
 # Opción A: Script automático (instala truffle si falta, compila, despliega y arranca)
 chmod +x run-dapp.sh
 ./run-dapp.sh
+#Si solicita hostear la conexión usar este comando
+kubectl port-forward pod/besu-0 30545:8545 30800:8546 -n tfg
+
 
 # Opción B: Manual
 cd pet-shop
